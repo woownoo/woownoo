@@ -1,0 +1,15 @@
+# 환경 변수 (API 키 절대 커밋 금지)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# 실행 결과물
+output/*.csv
+output/*.json
+!output/.gitkeep
