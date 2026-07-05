@@ -38,24 +38,57 @@ cp .env.example .env   # .env 에 API 키 입력
 
 ## 🚀 사용법
 
+### 1) 단일 지점 (동네 하나 빠르게)
+
 ```bash
-# 예: 강남역 반경 0.5km, 음식점·카페·상점 탐색
 python -m src.main --lat 37.4979 --lng 127.0276 --radius-km 0.5 \
     --types restaurant cafe store
 ```
+
+### 2) 전국 배치 (지역 목록 순회 · 중단/재개 가능)
+
+`data/korea_regions.csv` 에 주요 도시 도심 21곳이 들어 있습니다.
+(헤더: `name,lat,lng,radius_km` — 원하는 시/군/구를 추가·수정하세요.)
+
+```bash
+# 먼저 비용/규모만 추정 (API 호출 안 함)
+python -m src.main --regions-file data/korea_regions.csv --estimate
+
+# 실제 실행 (예산 상한을 걸어 안전하게)
+python -m src.main --regions-file data/korea_regions.csv \
+    --run-name korea --max-kakao-calls 90000
+```
+
+- 같은 `--run-name` 으로 다시 실행하면 **처리한 격자를 건너뛰고 이어서** 진행합니다.
+- 결과는 후보가 나올 때마다 `output/<run-name>_candidates.csv` 에 즉시 누적 저장됩니다(중단돼도 보존).
+- 진행 상태는 `output/<run-name>_progress.json` 에 기록됩니다.
 
 주요 옵션:
 
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
-| `--lat`, `--lng` | 탐색 중심 좌표 (필수) | — |
-| `--radius-km` | 탐색 반경(km) | 0.5 |
+| `--lat`, `--lng`, `--radius-km` | 단일 지점 모드 | — / 0.5km |
+| `--regions-file` | 전국 모드: 지역 목록 CSV | — |
+| `--run-name` | 전국 모드: 재개용 실행 이름 | korea |
 | `--grid-step-m` | 격자 간격(m) | 400 |
 | `--cell-radius-m` | 격자점당 검색 반경(m) | 300 |
 | `--types` | 구글 장소 타입 | restaurant cafe store |
-| `--dry-run` | API 호출 없이 격자만 확인 | off |
+| `--max-cells` | 이번 실행 최대 격자 수 | 무제한 |
+| `--max-kakao-calls` | 이번 실행 카카오 호출 상한 | 무제한 |
+| `--estimate` | 비용만 추정하고 종료 | off |
 
-결과는 `output/candidates_<시각>.csv` 와 `.json` 으로 저장됩니다.
+### ⚠️ '전국 전체 격자'는 왜 안 하나요?
+
+남한 육지를 400m 격자로 다 훑으면 **약 60만+ 격자점 → 구글 API만 약 $19,000
+(2,600만 원), 카카오 무료 쿼터로 수주~수개월**이 걸립니다. 대부분은 바다·산
+등 빈 호출입니다. 그래서 **미등록 장소가 나올 확률이 높은 도심을 지역 단위로
+쪼개** 순차·재개 실행하는 방식을 씁니다. 시작 목록 21곳 기준 추정치:
+
+```
+격자점 ≈ 6,500  ·  구글 ≈ $208  ·  카카오 ≈ 5.2만 회(무료 하루치)
+```
+
+지역을 넓히고 싶으면 `data/korea_regions.csv` 에 시/군/구를 추가하면 됩니다.
 
 ## 📄 결과 예시 (CSV 열)
 
@@ -98,9 +131,14 @@ src/
   google_maps.py   # 구글 Places API 클라이언트 + 공통 Place 모델
   kakao_maps.py    # 카카오 로컬 API 클라이언트
   comparator.py    # 이름/거리 기반 동일 장소 판정 + 후보 선별
-  reporter.py      # CSV/JSON 저장
-  main.py          # CLI
+  regions.py       # 지역 정의 · 격자 생성 · 비용 추정
+  runner.py        # 전국 배치 러너 (체크포인트/재개 · 누적 저장)
+  reporter.py      # 단일 지점 결과 CSV/JSON 저장
+  main.py          # CLI (단일 지점 / 전국 모드)
+data/
+  korea_regions.csv  # 전국 시작 지역 목록 (주요 도시 도심 21곳)
 tests/
   test_comparator.py
-output/            # 결과물 저장 위치
+  test_regions.py
+output/            # 결과물 · 진행 상태 저장 위치
 ```
