@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────
+#  구글드라이브 ↔ 3D프린터 USB 동기화 설정 예시
+#  이 파일을 config.yaml 로 복사한 뒤 값을 채워 주세요.
+# ─────────────────────────────────────────────────────────────
+
+# rclone 로 구성한 구글드라이브 원격 저장소
+rclone:
+  # `rclone config` 로 만든 remote 이름 (예: gdrive)
+  remote: "gdrive"
+  # 동기화할 구글드라이브 안의 폴더 경로 (내 드라이브 기준)
+  # 비워 두면 드라이브 루트 전체를 동기화합니다.
+  folder: "3dprint"
+  # rclone 실행 파일 경로 (기본값이면 그대로)
+  bin: "rclone"
+
+# USB 대용량저장장치(gadget) 설정
+gadget:
+  # 프린터에 "USB 드라이브"로 노출되는 디스크 이미지 파일
+  image: "/home/pi/printer.img"
+  # configfs 상의 LUN 파일 경로. setup_gadget.sh 가 만들어 주는 값과 같아야 합니다.
+  lun_file: "/sys/kernel/config/usb_gadget/g1/functions/mass_storage.0/lun.0/file"
+  # 파이 쪽에서 이미지를 잠깐 마운트할 위치
+  mount_point: "/mnt/gadget"
+
+sync:
+  # 동기화 주기(초)
+  interval_seconds: 30
+  # down = 구글드라이브 → USB (G-code 내려받기, 기본)
+  # both = 양방향 (프린터가 쓴 파일도 드라이브로 올림)
+  direction: "down"
+  # 프린트 중에는 동기화를 건너뛰도록 감시할 파일.
+  # 이 파일이 존재하면 그 주기의 동기화를 건너뜁니다. (선택)
+  pause_flag: "/home/pi/.printing"
+  # 프린터를 건드리지 않고 드라이브 내용을 먼저 받아 두는 로컬 폴더.
+  # 여기서 변화가 감지될 때만 USB(LUN)를 잠깐 분리합니다.
+  shadow_dir: "/home/pi/gdrive-shadow"

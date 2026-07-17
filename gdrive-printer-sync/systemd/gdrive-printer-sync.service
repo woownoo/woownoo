@@ -1,0 +1,16 @@
+[Unit]
+Description=구글드라이브 ↔ 3D프린터 USB 동기화
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=__WORKDIR__
+ExecStart=/usr/bin/python3 __WORKDIR__/main.py --config __WORKDIR__/config.yaml
+Restart=on-failure
+RestartSec=10
+# LUN/loop 마운트에 root 권한이 필요합니다.
+User=root
+
+[Install]
+WantedBy=multi-user.target

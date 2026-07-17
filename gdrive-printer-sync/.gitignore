@@ -1,0 +1,6 @@
+# 사용자별 설정/데이터는 커밋하지 않음
+config.yaml
+*.img
+gdrive-shadow/
+__pycache__/
+*.pyc
